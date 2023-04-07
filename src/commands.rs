@@ -1,5 +1,5 @@
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 const DISTROTUNNEL: &str = env!("DISTROTUNNEL");
 
@@ -295,29 +295,19 @@ pub fn remove(package: &str) -> Result<String, String> {
 
 pub fn update() -> Result<String, String> {
     println!("> Trying to update...");
-    let command = Command::new("yay")
+
+    let output = Command::new("yay")
         .args(&["-Syu", "--noconfirm"])
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .output()
         .expect("failed to execute process");
 
-    let stdout = String::from_utf8(command.stdout).unwrap();
-    let stderr = String::from_utf8(command.stderr).unwrap();
-
-    if stdout.contains("resolving dependencies...") {
-        println!("> Updating...");
-    } else {
-        println!("> All packages are up to date <3");
+    if !output.status.success() {
+        return Err(format!("> {}", String::from_utf8_lossy(&output.stderr)));
     }
 
-    if !stderr.is_empty() {
-        if stderr.contains("warning") {
-            return Ok(stdout);
-        }
-
-        return Err(format!("> {}", &stderr));
-    }
-
-    Ok(stdout)
+    Ok(String::new())
 }
 
 pub fn unexport_bin(binaries: &Vec<String>) -> Result<String, String> {

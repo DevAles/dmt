@@ -13,7 +13,7 @@ pub enum CommandOptions {
 
 pub struct CommandHelper {
     pub option: CommandOptions,
-    pub package: Option<String>,
+    pub packages: Vec<String>,
 }
 
 impl CommandHelper {
@@ -21,7 +21,7 @@ impl CommandHelper {
         let args: Vec<String> = env::args().collect();
 
         let mut option = CommandOptions::Help;
-        let mut package: Option<String> = None;
+        let mut packages = Vec::new();
 
         if args.len() > 1 {
             match args[1].as_str() {
@@ -34,22 +34,17 @@ impl CommandHelper {
             }
 
             if args.len() > 2 {
-                package = Some(args[2].to_owned());
+                packages = args.iter().skip(2).map(|s| s.to_owned()).collect();
             }
         }
 
-        Self { option, package }
+        Self { option, packages }
     }
 
-    fn add(&self) {
+    fn add(&self, package_number: usize) {
         println!("> Adding package");
 
-        if let None = self.package {
-            println!("> You need to specify a package to add");
-            return;
-        }
-
-        let package = self.package.as_ref().unwrap();
+        let package = &self.packages[package_number];
 
         if let Err(e) = add(&package) {
             println!("> Error adding package: {}", e);
@@ -57,18 +52,12 @@ impl CommandHelper {
         }
     }
 
-    fn query(&self) -> Result<Vec<String>, ()> {
-        if let None = self.package {
-            println!("> You need to specify a package to query");
-            return Err(());
-        }
-
-        let package = self.package.as_ref().unwrap();
+    fn query(&self, package_number: usize) -> Result<Vec<String>, ()> {
+        let package = &self.packages[package_number];
 
         let binaries = query(&package);
 
-        if let Err(e) = binaries {
-            println!("{}", e);
+        if let Err(_) = binaries {
             return Err(());
         }
 
@@ -100,13 +89,8 @@ impl CommandHelper {
         }
     }
 
-    fn unexport_bin(&self, binaries: &Vec<String>) {
-        if let None = self.package {
-            println!("> You need to specify a package to unexport");
-            return;
-        }
-
-        let package = self.package.as_ref().unwrap();
+    fn unexport_bin(&self, binaries: &Vec<String>, package_number: usize) {
+        let package = &self.packages[package_number];
 
         if let Err(e) = unexport_bin(&binaries) {
             if e.is_empty() {
@@ -117,13 +101,8 @@ impl CommandHelper {
         }
     }
 
-    fn remove(&self) {
-        if let None = self.package {
-            println!("> You need to specify a package to remove");
-            return;
-        }
-
-        let package = self.package.as_ref().unwrap();
+    fn remove(&self, package_number: usize) {
+        let package = &self.packages[package_number];
 
         if let Err(e) = remove(&package) {
             if e.contains("breaks dependency") {
@@ -137,6 +116,7 @@ impl CommandHelper {
             }
         } else {
             println!("> Bye bye {} :)", package);
+            println!();
         }
     }
 
@@ -150,30 +130,47 @@ impl CommandHelper {
     pub fn process(&self) {
         match self.option {
             CommandOptions::Add => {
-                self.add();
-                let binaries = self.query();
-
-                if let Err(_) = binaries {
+                if self.packages.len() == 0 {
+                    println!("> You need to specify a package to add");
                     return;
                 }
 
-                let binaries = binaries.unwrap();
-                self.export_app(&binaries);
-                self.export_bin(&binaries);
+                for i in 0..self.packages.len() {
+                    self.add(i);
+
+                    let binaries = self.query(i);
+
+                    if let Err(_) = binaries {
+                        return;
+                    }
+
+                    let binaries = binaries.unwrap();
+
+                    self.export_app(&binaries);
+                    self.export_bin(&binaries);
+                }
             }
 
             CommandOptions::Remove => {
-                let binaries = self.query();
-
-                if let Err(_) = binaries {
-                    println!("> Package not added, can't remove");
+                if self.packages.len() == 0 {
+                    println!("> You need to specify a package to remove");
                     return;
                 }
 
-                let binaries = binaries.unwrap();
-                self.unexport_app(&binaries);
-                self.unexport_bin(&binaries);
-                self.remove();
+                for i in 0..self.packages.len() {
+                    let binaries = self.query(i);
+
+                    if let Err(_) = binaries {
+                        println!("> Package not added, can't remove");
+                        return;
+                    }
+
+                    let binaries = binaries.unwrap();
+
+                    self.unexport_app(&binaries);
+                    self.unexport_bin(&binaries, i);
+                    self.remove(i);
+                }
             }
 
             CommandOptions::Update => {
@@ -181,8 +178,23 @@ impl CommandHelper {
             }
 
             CommandOptions::Query => {
-                let binaries = self.query();
-                println!("{}", binaries.unwrap().join("\n"));
+                if self.packages.len() == 0 {
+                    println!("> You need to specify a package to query");
+                    return;
+                }
+
+                for i in 0..self.packages.len() {
+                    let binaries = self.query(i);
+
+                    if let Err(_) = binaries {
+                        println!("> Package not added, can't query");
+                        return;
+                    }
+
+                    let binaries = binaries.unwrap();
+
+                    println!("{}", binaries.join("\n"));
+                }
             }
 
             CommandOptions::Help => {
@@ -381,6 +393,7 @@ pub fn export_bin(binaries: &Vec<String>) -> Result<String, String> {
         }
 
         println!("> Exporting {}...", &binary.trim_start_matches("/usr/bin/"));
+        println!();
     }
 
     Ok("".to_string())

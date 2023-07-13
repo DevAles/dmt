@@ -64,17 +64,17 @@ fn complete(input: impl CompletionInput) -> Vec<String> {
         0 => unreachable!(),
         1 => {
             vec![
-                "-a  --add".to_string(),
-                "-r  --remove".to_string(),
-                "-u  --update".to_string(),
-                "-h  --help".to_string(),
+                "install".to_string(),
+                "remove".to_string(),
+                "update".to_string(),
+                "help".to_string(),
             ]
         }
         2 => {
             let command = CommandHelper::attribute_option(input.previous_word());
 
             match command {
-                CommandOptions::Add => add_suggestions(input.current_word()).unwrap(),
+                CommandOptions::Install => add_suggestions(input.current_word()).unwrap(),
                 CommandOptions::Remove => remove_suggestions(input.current_word()).unwrap(),
                 _ => vec![],
             }

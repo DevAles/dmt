@@ -5,7 +5,7 @@ pub mod commands {
     const DISTROTUNNEL: &str = env!("DISTROTUNNEL");
 
     pub enum CommandOptions {
-        Add,
+        Install,
         Remove,
         Query,
         Update,
@@ -36,21 +36,21 @@ pub mod commands {
 
         pub fn attribute_option(command: &str) -> CommandOptions {
             match command {
-                "-a" | "--add" => CommandOptions::Add,
-                "-r" | "--remove" => CommandOptions::Remove,
-                "-q" | "--query" => CommandOptions::Query,
-                "-u" | "--update" => CommandOptions::Update,
-                "-h" | "--help" => CommandOptions::Help,
+                "install" | "-i" => CommandOptions::Install,
+                "remove" | "-r" => CommandOptions::Remove,
+                "query" | "-q" => CommandOptions::Query,
+                "update" | "-u" => CommandOptions::Update,
+                "help" | "-h" => CommandOptions::Help,
                 _ => CommandOptions::Help,
             }
         }
 
-        fn add(&self, package_number: usize) {
+        fn install(&self, package_number: usize) {
             println!("> Adding package");
 
             let package = &self.packages[package_number];
 
-            if let Err(e) = add(&package) {
+            if let Err(e) = install(&package) {
                 println!("> Error adding package: {}", e);
                 return;
             }
@@ -133,14 +133,14 @@ pub mod commands {
 
         pub fn process(&self) {
             match self.option {
-                CommandOptions::Add => {
+                CommandOptions::Install => {
                     if self.packages.len() == 0 {
-                        println!("> You need to specify a package to add");
+                        println!("> You need to specify a package to install");
                         return;
                     }
 
                     for i in 0..self.packages.len() {
-                        self.add(i);
+                        self.install(i);
 
                         let binaries = self.query(i);
 
@@ -206,10 +206,10 @@ pub mod commands {
                 Usage: dmt [OPTION] [PACKAGE]
 
                 Options:
-                -a, --add       Add package to distrotunnel
-                -r, --remove    Remove package from distrotunnel
-                -u, --update    Update distrotunnel
-                -h, --help      Show this help
+                install, -i   Add package to distrotunnel
+                remove, -r    Remove package from distrotunnel
+                update, -u    Update distrotunnel
+                help, -h      Show this help
             ";
 
                     let help_trimmed = help
@@ -252,8 +252,8 @@ pub mod commands {
         Ok(output)
     }
 
-    pub fn add(package: &str) -> Result<String, String> {
-        println!("> Trying to add {}...", &package);
+    pub fn install(package: &str) -> Result<String, String> {
+        println!("> Trying to install {}...", &package);
 
         let command = Command::new("yay")
             .args(&["-S", "--noconfirm", package])

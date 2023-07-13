@@ -255,33 +255,18 @@ pub mod commands {
     pub fn install(package: &str) -> Result<String, String> {
         println!("> Trying to install {}...", &package);
 
-        let command = Command::new("yay")
+        let output = Command::new("yay")
             .args(&["-S", "--noconfirm", package])
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .output()
             .expect("failed to execute process");
 
-        let stdout = String::from_utf8(command.stdout).unwrap();
-        let stderr = String::from_utf8(command.stderr).unwrap();
-
-        if stdout.contains("-> AUR package does not exist") {
-            return Err("> Package does not exist".to_string());
+        if !output.status.success() {
+            return Err(format!("> {}", String::from_utf8_lossy(&output.stderr)));
         }
 
-        if stderr.contains("-- reinstalling") {
-            println!("> Reinstalling {}...", &package);
-        } else if stdout.contains("resolving dependencies...") {
-            println!("> Installing {}...", &package);
-        }
-
-        if !stderr.is_empty() {
-            if stderr.contains("warning") {
-                return Ok(stdout);
-            }
-
-            return Err(format!("> {}", &stderr));
-        }
-
-        Ok(stdout)
+        Ok(String::new())
     }
 
     pub fn remove(package: &str) -> Result<String, String> {

@@ -1,6 +1,4 @@
-mod commands;
-
-use crate::commands::CommandHelper;
+use dmt::commands::CommandHelper;
 
 fn main() {
     let command = CommandHelper::new();

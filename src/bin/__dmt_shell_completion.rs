@@ -65,9 +65,13 @@ fn complete(input: impl CompletionInput) -> Vec<String> {
         1 => {
             vec![
                 "install".to_string(),
+                "-i".to_string(),
                 "remove".to_string(),
+                "-r".to_string(),
                 "update".to_string(),
+                "-u".to_string(),
                 "help".to_string(),
+                "-h".to_string(),
             ]
         }
         2 => {

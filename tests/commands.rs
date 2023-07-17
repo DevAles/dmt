@@ -33,3 +33,20 @@ async fn install() {
 
     assert!(run_command("which cmatrix").await.is_ok());
 }
+
+#[serial_test::serial]
+#[tokio::test]
+async fn remove() {
+    if let Err(_) = run_command("which cmatrix").await {
+        run_command("yay -S cmatrix --noconfirm").await.unwrap();
+    }
+
+    let command = CommandHelper {
+        option: CommandOptions::Remove,
+        packages: vec!["cmatrix".to_string()],
+    };
+
+    command.remove(0);
+
+    assert!(run_command("which cmatrix").await.is_err());
+}

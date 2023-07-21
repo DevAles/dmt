@@ -17,19 +17,42 @@ async fn run_command(command: &str) -> Result<(), String> {
         })
 }
 
+async fn prepare_to_test_installation(packages: &Vec<String>) -> Result<(), String> {
+    for package in packages {
+        if let Ok(_) = run_command(&format!("which {}", package)).await {
+            run_command(&format!("yay -R {} --noconfirm", package))
+                .await
+                .unwrap();
+        }
+    }
+
+    Ok(())
+}
+
+async fn prepare_to_test_removal(packages: &Vec<String>) -> Result<(), String> {
+    for package in packages {
+        if let Err(_) = run_command(&format!("which {}", package)).await {
+            run_command(&format!("yay -S {} --noconfirm", package))
+                .await
+                .unwrap();
+        }
+    }
+
+    Ok(())
+}
+
 #[serial_test::serial]
 #[tokio::test]
 async fn install() {
-    if let Ok(_) = run_command("which cmatrix").await {
-        run_command("yay -R cmatrix --noconfirm").await.unwrap();
-    }
+    let package_list = vec!["cmatrix".to_string()];
+    prepare_to_test_installation(&package_list).await.unwrap();
 
     let command = CommandHelper {
         option: CommandOptions::Install,
-        packages: vec!["cmatrix".to_string()],
+        packages: package_list,
     };
 
-    command.install(0);
+    command.process();
 
     assert!(run_command("which cmatrix").await.is_ok());
 }
@@ -37,16 +60,32 @@ async fn install() {
 #[serial_test::serial]
 #[tokio::test]
 async fn remove() {
-    if let Err(_) = run_command("which cmatrix").await {
-        run_command("yay -S cmatrix --noconfirm").await.unwrap();
-    }
+    let packages = vec!["cmatrix".to_string()];
+    prepare_to_test_removal(&packages).await.unwrap();
 
     let command = CommandHelper {
         option: CommandOptions::Remove,
-        packages: vec!["cmatrix".to_string()],
+        packages,
     };
 
-    command.remove(0);
+    command.process();
 
     assert!(run_command("which cmatrix").await.is_err());
+}
+
+#[serial_test::serial]
+#[tokio::test]
+async fn multiple_install() {
+    let package_list = vec!["cmatrix".to_string(), "cowsay".to_string()];
+    prepare_to_test_installation(&package_list).await.unwrap();
+
+    let command = CommandHelper {
+        option: CommandOptions::Install,
+        packages: package_list,
+    };
+
+    command.process();
+
+    assert!(run_command("which cmatrix").await.is_ok());
+    assert!(run_command("which cowsay").await.is_ok());
 }

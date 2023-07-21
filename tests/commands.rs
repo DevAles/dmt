@@ -19,7 +19,7 @@ async fn run_command(command: &str) -> Result<(), String> {
 
 async fn prepare_to_test_installation(packages: &Vec<String>) -> Result<(), String> {
     for package in packages {
-        if let Ok(_) = run_command(&format!("which {}", package)).await {
+        if let Ok(_) = run_command(&format!("yay -Qsq {}", package)).await {
             run_command(&format!("yay -R {} --noconfirm", package))
                 .await
                 .unwrap();
@@ -31,7 +31,7 @@ async fn prepare_to_test_installation(packages: &Vec<String>) -> Result<(), Stri
 
 async fn prepare_to_test_removal(packages: &Vec<String>) -> Result<(), String> {
     for package in packages {
-        if let Err(_) = run_command(&format!("which {}", package)).await {
+        if let Err(_) = run_command(&format!("yay -Qsq {}", package)).await {
             run_command(&format!("yay -S {} --noconfirm", package))
                 .await
                 .unwrap();
@@ -53,8 +53,7 @@ async fn install() {
     };
 
     command.process();
-
-    assert!(run_command("which cmatrix").await.is_ok());
+    assert!(run_command("yay -Qsq cmatrix").await.is_ok());
 }
 
 #[serial_test::serial]
@@ -70,7 +69,7 @@ async fn remove() {
 
     command.process();
 
-    assert!(run_command("which cmatrix").await.is_err());
+    assert!(run_command("yay -Qsq cmatrix").await.is_err());
 }
 
 #[serial_test::serial]
@@ -86,6 +85,23 @@ async fn multiple_install() {
 
     command.process();
 
-    assert!(run_command("which cmatrix").await.is_ok());
-    assert!(run_command("which cowsay").await.is_ok());
+    assert!(run_command("yay -Qsq cmatrix").await.is_ok());
+    assert!(run_command("yay -Qsq cowsay").await.is_ok());
+}
+
+#[serial_test::serial]
+#[tokio::test]
+async fn multiple_remove() {
+    let packages = vec!["cmatrix".to_string(), "cowsay".to_string()];
+    prepare_to_test_removal(&packages).await.unwrap();
+
+    let command = CommandHelper {
+        option: CommandOptions::Remove,
+        packages,
+    };
+
+    command.process();
+
+    assert!(run_command("yay -Qsq cmatrix").await.is_err());
+    assert!(run_command("yay -Qsq cowsay").await.is_err());
 }

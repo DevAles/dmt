@@ -8,6 +8,7 @@ pub enum CommandOptions {
     Remove,
     Query,
     Update,
+    Test,
     Help,
 }
 
@@ -39,6 +40,7 @@ impl CommandHelper {
             "remove" | "-r" => CommandOptions::Remove,
             "query" | "-q" => CommandOptions::Query,
             "update" | "-u" => CommandOptions::Update,
+            "test" | "-t" => CommandOptions::Test,
             "help" | "-h" => CommandOptions::Help,
             _ => CommandOptions::Help,
         }
@@ -200,6 +202,19 @@ impl CommandHelper {
                 }
             }
 
+            CommandOptions::Test => {
+                println!("> Running tests");
+
+                let dmt_toml = format!("{}/scripts/dmt/Cargo.toml", DISTROTUNNEL);
+
+                Command::new("cargo")
+                    .args(&["test", "--manifest-path", &dmt_toml])
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .output()
+                    .expect("failed to execute process");
+            }
+
             CommandOptions::Help => {
                 let help = "
                 Usage: dmt [OPTION] [PACKAGE]
@@ -208,6 +223,7 @@ impl CommandHelper {
                 install, -i   Add package to distrotunnel
                 remove, -r    Remove package from distrotunnel
                 update, -u    Update distrotunnel
+                test, -t      Run dmt tests
                 help, -h      Show this help
             ";
 

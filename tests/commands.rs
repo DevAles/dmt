@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use dmt::commands::{CommandHelper, CommandOptions};
+use dmt::commands::{self, CommandHelper, CommandOptions};
 
 async fn run_command(command: &str) -> Result<(), String> {
     Command::new("sh")
@@ -104,4 +104,16 @@ async fn multiple_remove() {
 
     assert!(run_command("yay -Qsq cmatrix").await.is_err());
     assert!(run_command("yay -Qsq cowsay").await.is_err());
+}
+
+#[serial_test::serial]
+#[tokio::test]
+async fn query() {
+    let packages = vec!["cmatrix".to_string()];
+    prepare_to_test_removal(&packages).await.unwrap();
+
+    assert_eq!(
+        commands::query(packages[0].as_str()).unwrap()[0],
+        "/usr/bin/cmatrix"
+    );
 }
